@@ -10,6 +10,7 @@ import {
   ScrollRestoration,
   useLoaderData,
   useNavigation,
+  useSubmit,
 } from "@remix-run/react";
 import { createEmptyContact, getContacts } from "./data";
 import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
@@ -34,6 +35,10 @@ export const links: LinksFunction = () => [
 export default function App() {
   const { contacts, q } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
+  const submit = useSubmit();
+  const searching =
+    navigation.location &&
+    new URLSearchParams(navigation.location.search).has("q");
 
   useEffect(() => {
     const searchField = document.getElementById("q");
@@ -54,16 +59,26 @@ export default function App() {
         <div id="sidebar">
           <h1>Remix Contacts</h1>
           <div>
-            <Form id="search-form" role="search">
+            <Form
+              id="search-form"
+              role="search"
+              onChange={(event) => {
+                const isFirstSearch = q === null;
+                submit(event.currentTarget, {
+                  replace: !isFirstSearch,
+                });
+              }}
+            >
               <input
                 id="q"
+                className={searching ? "loading" : ""}
                 aria-label="Search contacts"
                 placeholder="Search"
                 defaultValue={q || ""}
                 type="search"
                 name="q"
               />
-              <div id="search-spinner" aria-hidden hidden={true} />
+              <div id="search-spinner" aria-hidden hidden={!searching} />
             </Form>
             <Form method="post">
               <button type="submit">New</button>
@@ -99,7 +114,9 @@ export default function App() {
         </div>
         <div
           id="detail"
-          className={navigation.state === "loading" ? "loading" : ""}
+          className={
+            navigation.state === "loading" && !searching ? "loading" : ""
+          }
         >
           <Outlet />
         </div>
